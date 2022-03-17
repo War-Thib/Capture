@@ -25,7 +25,6 @@ from tensorflow.python.keras import layers
 from tensorflow.python.keras.models import Sequential
 import boto3
 from botocore.exceptions import NoCredentialsError
-
 import random
 import string
 def getPassword(length):
@@ -52,7 +51,7 @@ def home(request):
             for i in model_labbelized_images:
                 print(i.label)
             password_1 = getPassword(8)
-            list_label = image_machine_learning_model(model_labbelized_images,request.session['user_id'], password_1)  
+            list_label = image_machine_learning_model(model_labbelized_images,request.session['user_id'], password_1, ml_name)  
             form_Image=ImageForm()
             form_ML = MLForm() 
             user_connected = User.objects.get(id=request.session['user_id'])
@@ -61,8 +60,7 @@ def home(request):
             return render(request, "MLApp/home.html",  {"form_Image":form_Image, "form_ML":form_ML, "ml_names":Ml_list, "password":password, "list_label":list_label}) 
         ## la partie pour la création des images basées sur l'algorithme que l'on choisit  
         
-        if request.method == "POST" and 'label' in request.POST:
-           
+        if request.method == "POST" and 'label' in request.POST:         
             label = request.POST.get("label", "")
             print(label)
             images = request.FILES.getlist('images')
@@ -96,14 +94,7 @@ def home(request):
                 user_connected = User.objects.get(id=request.session['user_id'])
                 Ml_list = MLalgorithm.objects.filter(user = user_connected)
                 return render(request,"MLApp/home.html",  {"form_Image":form_Image, "form_ML":form_ML,"ml_names":Ml_list } )
-       
-    # if request.method == "POST":
-    #     form_Image=ImageForm(data=request.POST,files=request.FILES)
-    #     if form_Image.is_valid():
-    #         form_Image.save()
-    #         form_Image=ImageForm()
-    #         form_ML = MLForm()
-    #         return render(request,"MLApp/home.html", {"form_Image":form_Image, "form_ML":form_ML})     
+         
         else:
             form_Image=ImageForm()
             form_ML = MLForm()
@@ -163,41 +154,39 @@ def login(request):
 
 
 
-def image_machine_learning_model(labellized_data, session, password):
+def image_machine_learning_model(labellized_data, session, password, ml_name):
     print('je rentre correctement dans la fonction')
     
-    ## c'est ici que ça va être chaud parce que je dois aussi jouer avec la structure de mes fichiers, je dois avoir 2 fichiers CSV 
-    #la première chose que je dois faire c'est load les pictures en fonction de leurs labels 
     list_label_with_duplicate = []
-    #petite list compréhension avec lambda function pour éviter les doublons et ça sera bcp plus clean
     for i in labellized_data: 
         list_label_with_duplicate.append(i.label)
-    #j'ai ici de manière absolument correcte une liste avec les 2 différents labels     
     list_label = list(dict.fromkeys(list_label_with_duplicate))
     print(list_label)
-    #va falloir 
-    #j'ai pas l'impression que c'est quelque chose que je peux faire, je vais devoir ruser et faire cela autrement. Soous quelle forme est ce que je veux mes datas
     list_label_category_1 = [image for image in labellized_data if image.label == list_label[0]]
     print(list_label_category_1)
     list_label_category_2 = [image for image in labellized_data if image.label == list_label[1]]
-    counter = 0
-    for i in (list_label):
-        directory = "{}".format(list_label[counter])
-        # Parent Directory path
-        parent_dir = "media\ML_models"
-        # Path
-        path = os.path.join(parent_dir, directory)
-        os.mkdir(path)
-        print("Directory '% s' created" % directory)
-        counter +=1
-   
+    # counter = 0
+    # for i in (list_label):
+    #     directory = "{}".format(list_label[counter])
+    #     # Parent Directory path
+    #     parent_dir = "media\ML_models"
+    #     # Path
+    #     path = os.path.join(parent_dir, directory)
+    #     os.mkdir(path)
+    #     print("Directory '% s' created" % directory)
+    #     counter +=1
+    ACCESS_KEY = 'AKIAZ7AJKNHRWXG6V2PJ'
+    SECRET_KEY = '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'
+    def uploadDirectory_Images(image, bucketname, list_label):
+        s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,aws_secret_access_key=SECRET_KEY)
+        s3.upload_file(image,bucketname, 'images/{}/{}/{}'.format(ml_name, list_label , str(image.image)))
+
     for image in list_label_category_1:
-        print('ok')
-        shutil.copy("media/{}".format(str(image.image)), "media/Ml_models/{}".format(list_label[0]))
+        #c'est déjà ici que je vais faire mes preprocessing d'images afin d'éviter les couts liés au serveur Amzaon
+        uploadDirectory_Images(image, 'capture-static', list_label[0])
 
     for image in list_label_category_2:
-        print('ok2')
-        shutil.copy("media/{}".format(str(image.image)), 'media/Ml_models/{}'.format(list_label[1]))
+        uploadDirectory_Images(image, 'capture-static', list_label[1])
 
     import pathlib
     data_dir = "media/Ml_models/"
@@ -318,13 +307,13 @@ def image_machine_learning_model(labellized_data, session, password):
     ACCESS_KEY = 'AKIAZ7AJKNHRWXG6V2PJ'
     SECRET_KEY = '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'
 
-    def uploadDirectory(path,bucketname):
+    def uploadDirectory_Model(path,bucketname):
         s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,aws_secret_access_key=SECRET_KEY)
         for root,dirs,files in os.walk(path):
             for file in files:
                 s3.upload_file(os.path.join(root,file),bucketname, 'models/{}_{}_{}'.format(session, password, file))
 
-    uploadDirectory('media\ML_algo\my_model\converted_model', 'capture-static')       
+    uploadDirectory_Model('media\ML_algo\my_model\converted_model', 'capture-static')       
     print('le transfert a été fait') 
 
     dir_path_3 = "media/Ml_algo/"
@@ -335,43 +324,5 @@ def image_machine_learning_model(labellized_data, session, password):
 
     return list_label
 
-    # def upload_to_aws(local_file, bucket, s3_file):
-    #     s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,
-    #                     aws_secret_access_key=SECRET_KEY)
-    #     try:
-    #         s3.upload_file(local_file, bucket, s3_file)
-    #         print("Upload Successful")
-    #         return True
-    #     except FileNotFoundError:
-    #         print("The file was not found")
-    #         return False
-    #     except NoCredentialsError:
-    #         print("Credentials not available")
-    #         return False
-
-    # upload_to_aws('MLApp\ML_algo\my_model\converted_model\model.json' , 'capture-static', 'models/model.json')
-
-
-#ça ça a l'air pas mal pour permettre d'avoir une option de download de l'algorithme
-# import os
-# from django.conf import settings
-# from django.http import HttpResponse, Http404
-
-# def download(request, path):
-#     file_path = os.path.join(settings.MEDIA_ROOT, path)
-#     if os.path.exists(file_path):
-#         with open(file_path, 'rb') as fh:
-#             response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
-#             response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
-#             return response
-#     raise Http404
-
-# ca peut toujours être une idée mais peut-être pas aujourd'hui
-# #Connection à la base de donnée, MONGOdb NoSQL que je vais populer en fonction de mes datas et qui me servira pour le modèle de machine learning
-#     uri = 'mongodb://uzjarzixxbx5m8xznvh3:5Bb8gkq7O800UlA05GX4@bqwwnmbw1haxvsa-mongodb.services.clever-cloud.com:27017/bqwwnmbw1haxvsa'
-#     client = MongoClient(uri)
-#     print(client.stats)
-#     db = client['bqwwnmbw1haxvsa']
-#     print(client.list_database_names())
 
 
