@@ -1,0 +1,12 @@
+Comment organiser correctement ma base de données ?? 
+
+J'ai besoin que des modèles soient reliés à des utilisateurs et aussi que des données labelisées soient reliées à des modèles ok ok 
+
+Première complexité, la gestion des images et des fichiers à l'air totalement différente par rapport au reste des donnés,  
+La première partie qui s'intitule création de l'algorithme est vraiment débile faut que je fasse attention ça sera beaucoup mieux quand je pourrai la mettre avec le reste je vais savoir si je ne fais pas de la merde, je vais pouvoir merger les 2 premiers forms et mon code sera 10000 fois plus clean
+je dois aussi faire en sorte de faire sortir toutes les images labelisées de ma base de donnée Django parce que comme ils le disent c'est un mauvais design et finalement ça me sert à rien
+Ces images + les modèles d'algo se doivent d'être host sur le cloud, par contre ce que je vais pouvoir faire je l'espère c'est host le lien vers l'algo dans ma database django. 
+Dans le meilleur des mondes, qu'est ce qu'il se passe ? Faut que je préprocess les images avant de les stores la vérité sinon c'est chaud au niveau du traffic, ces images vont dans un fichier S3 AWS temporairement afin de savoir entrainer le modèle et puis après c'est l'algo AWS qui va dans cloud et par contre je récupère l'https le lien cloud du fichier .json qui est tellement important pour le putain de tensorflow.js
+Dans tous les cas je vais devoir changer le stockage de la totalité des fichiers parce que Heroku ne l'accepte pas haha j'imagine que 1 fois que tu fais ton push il ne veut plus rien entendre.
+C'est bien ce qu'il me semblait, il est de toute manière impossible de storer mes images de manière locale si à un moment je déploie réelement mon projet avec Heroku ou Docker => du coup il faut que tout mes fichiers static-media et tout soit hostés au niveau de serveurs.
+Je vais devoir utiliser AWS mais va falloir faire méga attention par rapport aux prix qui vont être engendré si les gens font des folies, le but ça va être de déployer l'app sur le web à la toute fin et faire méga attention quoi. Parce que si qqn veut me baiser il le pourrait financièrement haha un peu à la benjamin code qui devait genre payer 2000$ à AWS parce que plein de monde avait utilisé son site, je veux pas que ça m'arrive mais ça ne va pas arriver en pkus pas de soucis. 
